@@ -1,19 +1,15 @@
 import { Injectable } from '@angular/core';
-import { Preferences } from '@capacitor/preferences';
+
+declare const NativeStorage: any;
 
 /**
- * StorageService — Abstraction layer over @capacitor/preferences.
+ * StorageService — Abstraction layer for persistent storage.
  *
- * This service provides typed, async key-value storage for the application.
- * It wraps the Capacitor Preferences API to handle JSON serialization
- * and deserialization transparently.
+ * Uses NativeStorage (Cordova plugin) when available in native context,
+ * with automatic fallback to localStorage for web development.
  *
- * IMPORTANT: Never use localStorage directly — this is the only
- * approved storage mechanism per project guidelines.
- *
- * All methods are asynchronous because Capacitor Preferences
- * uses native storage on devices (SharedPreferences on Android,
- * UserDefaults on iOS).
+ * On native devices, NativeStorage uses SharedPreferences (Android)
+ * and UserDefaults (iOS), which are protected against cache clearing.
  *
  * @providedIn 'root' — Singleton service available application-wide.
  *
@@ -32,6 +28,13 @@ import { Preferences } from '@capacitor/preferences';
 @Injectable({ providedIn: 'root' })
 export class StorageService {
   /**
+   * Detects if NativeStorage (Cordova) is available.
+   */
+  private get isNative(): boolean {
+    return typeof NativeStorage !== 'undefined';
+  }
+
+  /**
    * Retrieves a value from storage by key.
    * Returns null if the key does not exist or the value cannot be parsed.
    *
@@ -40,14 +43,17 @@ export class StorageService {
    * @returns A promise resolving to the parsed value or null.
    */
   async get<T>(key: string): Promise<T | null> {
-    const { value } = await Preferences.get({ key });
-
-    if (value === null) {
-      return null;
-    }
-
     try {
-      return JSON.parse(value) as T;
+      if (this.isNative) {
+        const value = await new Promise<string>((resolve, reject) => {
+          NativeStorage.getItem(key, resolve, reject);
+        });
+        return JSON.parse(value) as T;
+      } else {
+        const value = localStorage.getItem(key);
+        if (value === null) return null;
+        return JSON.parse(value) as T;
+      }
     } catch {
       return null;
     }
@@ -61,10 +67,14 @@ export class StorageService {
    * @param value - The value to serialize and store.
    */
   async set<T>(key: string, value: T): Promise<void> {
-    await Preferences.set({
-      key,
-      value: JSON.stringify(value),
-    });
+    const serialized = JSON.stringify(value);
+    if (this.isNative) {
+      await new Promise<void>((resolve, reject) => {
+        NativeStorage.setItem(key, serialized, resolve, reject);
+      });
+    } else {
+      localStorage.setItem(key, serialized);
+    }
   }
 
   /**
@@ -73,7 +83,13 @@ export class StorageService {
    * @param key - The storage key to remove.
    */
   async remove(key: string): Promise<void> {
-    await Preferences.remove({ key });
+    if (this.isNative) {
+      await new Promise<void>((resolve, reject) => {
+        NativeStorage.remove(key, resolve, reject);
+      });
+    } else {
+      localStorage.removeItem(key);
+    }
   }
 
   /**
@@ -81,6 +97,12 @@ export class StorageService {
    * Use with caution — this removes ALL stored data for the app.
    */
   async clear(): Promise<void> {
-    await Preferences.clear();
+    if (this.isNative) {
+      await new Promise<void>((resolve, reject) => {
+        NativeStorage.clear(resolve, reject);
+      });
+    } else {
+      localStorage.clear();
+    }
   }
 }
