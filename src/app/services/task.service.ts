@@ -7,8 +7,7 @@ import { StorageService } from './storage.service';
  * TaskService — Manages CRUD operations for tasks.
  *
  * This service provides reactive task management using RxJS BehaviorSubject
- * for real-time UI updates, with persistent storage via @capacitor/preferences
- * through the StorageService abstraction.
+ * for real-time UI updates, with persistent storage via the StorageService abstraction.
  *
  * Data flow:
  * 1. On initialization, tasks are loaded from device storage.

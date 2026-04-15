@@ -1,6 +1,6 @@
 # TaskFlow 📋
 
-Aplicación móvil de gestión de tareas construida con **Ionic 8**, **Angular 20** y **Capacitor 8**.
+Aplicación móvil de gestión de tareas construida con **Ionic 8**, **Angular 20** y **Cordova**.
 
 TaskFlow permite a los usuarios gestionar sus tareas diarias con una interfaz limpia e intuitiva, optimizada para dispositivos móviles.
 
@@ -9,7 +9,7 @@ TaskFlow permite a los usuarios gestionar sus tareas diarias con una interfaz li
 - ✅ **Agregar tareas** — Crea nuevas tareas con un formulario modal simple
 - ✅ **Completar tareas** — Alterna el estado de completitud con un checkbox
 - ✅ **Eliminar tareas** — Desliza a la izquierda para revelar la opción de eliminar con confirmación
-- ✅ **Almacenamiento persistente** — Las tareas se guardan usando `@capacitor/preferences` (almacenamiento nativo multiplataforma)
+- ✅ **Almacenamiento persistente** — Las tareas se guardan usando `cordova-plugin-nativestorage` (almacenamiento nativo seguro) con fallback a localStorage en web
 - ✅ **Internacionalización** — Soporta inglés y español (detectado automáticamente del navegador)
 - ✅ **Pull to Refresh** — Desliza hacia abajo para recargar la lista de tareas
 - ✅ **Estado vacío** — Mensaje amigable cuando no existen tareas
@@ -22,8 +22,8 @@ TaskFlow permite a los usuarios gestionar sus tareas diarias con una interfaz li
 |---|---|---|
 | [Ionic Framework](https://ionicframework.com/) | 8.x | Componentes UI móviles |
 | [Angular](https://angular.dev/) | 20.x | Framework frontend |
-| [Capacitor](https://capacitorjs.com/) | 8.x | Runtime nativo |
-| [@capacitor/preferences](https://capacitorjs.com/docs/apis/preferences) | 8.x | Almacenamiento clave-valor persistente |
+| [Cordova](https://cordova.apache.org/) | 13.x (Android) / 7.x (iOS) | Motor nativo |
+| [cordova-plugin-nativestorage](https://github.com/nicovank/NativeStorage) | 2.x | Almacenamiento clave-valor persistente |
 | [@ngx-translate/core](https://github.com/ngx-translate/core) | 17.x | i18n / traducciones |
 | [TypeScript](https://www.typescriptlang.org/) | 5.9 | JavaScript con tipado seguro |
 | [Ionicons](https://ionic.io/ionicons) | 7.x | Librería de iconos |
@@ -53,7 +53,7 @@ src/
 │   │       └── task-form-modal.component.scss
 │   │
 │   ├── services/
-│   │   ├── storage.service.ts     # Wrapper sobre @capacitor/preferences
+│   │   ├── storage.service.ts     # Wrapper sobre NativeStorage
 │   │   └── task.service.ts        # CRUD de tareas con BehaviorSubject
 │   │
 │   └── models/
@@ -70,6 +70,9 @@ src/
 ├── global.scss                    # Estilos globales + fuente Inter
 ├── main.ts                        # Bootstrap con providers
 └── index.html                     # HTML de entrada
+
+config.xml                         # Configuración nativa Cordova
+ionic.config.json                  # Integración framework-Cordova
 ```
 
 ## Modelo de Datos
@@ -86,12 +89,13 @@ interface Task {
 }
 ```
 
-**Clave de almacenamiento:** `taskflow_tasks` (persistido vía `@capacitor/preferences`)
+**Clave de almacenamiento:** `taskflow_tasks` (persistido vía `StorageService`)
 
 ## Pre-requisitos
 
 - **Node.js** >= 18.x
 - **npm** >= 9.x
+- **Cordova CLI** (`npm install -g cordova`)
 - **Ionic CLI** (opcional, se instala vía npx)
 
 Para compilación nativa (opcional):
@@ -107,6 +111,10 @@ cd TaskFlow-Ionic
 
 # Instalar dependencias
 npm install
+
+# Agregar plataformas Cordova
+cordova platform add android
+cordova platform add ios    # Solo en macOS
 ```
 
 ## Ejecución de la Aplicación
@@ -129,11 +137,11 @@ La aplicación se abrirá en `http://localhost:8100/`
 # Compilar los assets web
 npx ng build --configuration production
 
-# Sincronizar con el proyecto nativo
-npx cap sync android
+# Compilar proyecto Android
+cordova build android
 
-# Abrir en Android Studio
-npx cap open android
+# El APK se genera en:
+# platforms/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ### iOS (solo macOS)
@@ -142,11 +150,11 @@ npx cap open android
 # Compilar los assets web
 npx ng build --configuration production
 
-# Sincronizar con el proyecto nativo
-npx cap sync ios
+# Compilar iOS
+cordova build ios
 
 # Abrir en Xcode
-npx cap open ios
+open platforms/ios/TaskFlow.xcworkspace
 ```
 
 ## Decisiones de Arquitectura
@@ -154,8 +162,8 @@ npx cap open ios
 ### Componentes Standalone (Sin NgModules)
 Todos los componentes usan la API standalone de Angular con imports individuales de componentes Ionic, siguiendo los patrones modernos de Angular 17+.
 
-### @capacitor/preferences en lugar de localStorage
-La aplicación usa `@capacitor/preferences` para almacenamiento en lugar de `localStorage`, garantizando compatibilidad multiplataforma con dispositivos nativos (SharedPreferences en Android, UserDefaults en iOS).
+### NativeStorage en lugar de localStorage
+La aplicación usa `cordova-plugin-nativestorage` para almacenamiento en lugar de `localStorage`, garantizando persistencia profunda en dispositivos nativos (SharedPreferences en Android, UserDefaults en iOS).
 
 ### Flujo de Datos Reactivo
 El `TaskService` usa `BehaviorSubject` de RxJS para proporcionar actualizaciones reactivas. Los componentes se suscriben usando el pipe `async` para limpieza automática.

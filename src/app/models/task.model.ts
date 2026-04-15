@@ -2,7 +2,7 @@
  * Task model — Represents a single to-do item in the application.
  *
  * This interface defines the shape of task data that is persisted
- * in device storage via @capacitor/preferences through the StorageService.
+ * in device storage via the StorageService.
  *
  * @example
  * ```typescript
